@@ -1,0 +1,15 @@
+---
+title: "Lab5"
+author: "Felix Baez-Santiago"
+date: "4/15/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+- 1. Are there some days of the week where more accidents happen than the others (see FARS manual, use variable DAY_WEEK)?
+
+- 2. Create a data frame containing the persons who are fatally hurt in the accidents (look up variable INJ_SEV)
+
