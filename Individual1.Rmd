@@ -66,15 +66,21 @@ danger
 
 - 4. Create a map, and label each state with the most dangerous vehicle. Discuss the definition of the most dangerous vehicle, and what you find from the map. (Hint: Read the description for the STATE and COUNTY columns in the FARS manual. The state & county codes are Geographic Locator Codes (GLCs) from the General Services Administration’s (GSA) publication. Use readxl::read_xlsx to read in the GLCs.)
 ```{r}
-MakeCode <- read.csv('makeCodes.csv')
-StateCode <- read.csv('stateCodes.csv')
-StateCode$State<- tolower(StateCode$State)
-states <- map_data("state")
-labelPosition <- states %>%
+codes <- read.csv("makeCodes.csv")
+states <- map_data('state')
+codes$'State Name' <- tolower(codes$'State Name')
+codes$'State Code' <- as.numeric(codes$'State Code')
+labels <- states %>%
    group_by(region) %>%
    summarise(long= mean(long, na.rm = TRUE), lat= mean(lat, na.rm = TRUE))
-labelPosition <- left_join(labelPosition, StateCode, by = c("region" = "State"))
- head(labelPosition, 10)
+labels <- left_join(labels, codes, by = c("region" = "State Name"))
+labels <- left_join(labels, danger, by = c("State Code" = "STATE"))
+labels$MAKE <- factor(labels$MAKE, levels = c(12, 20, 49, 37), 
+                     labels = c("Ford", "Chevrolet", "Toyota", "Honda"))                         
+states %>% ggplot() +
+  geom_polygon(  aes(x=long, y=lat, group=group),
+                color="grey", fill="black" ) + geom_text(data=labels, aes(label = MAKE, x=long, y=lat), color="white", size=3)
+```
 ```
 - 5. Join the accident and person table (work out which variable(s) to use)
 ```{r}
@@ -84,21 +90,25 @@ head(acc_per)
 
 - 6. Tally the number of accidents by day of the week (DAY_WEEK), hour of the day (HOUR) and gender (SEX). Visualize the results and explain what you find.
 ```{r}
-withAvgSex <- joined %>%
+acc_per_6 <- acc_per %>%
   filter(SEX == 1 || SEX == 2) %>%
   group_by(ST_CASE) %>%
   summarise(avgSex = mean(SEX))
-withAvgSex$sexesExplained <- ifelse(withAvgSex$avgSex == 1, 'Men Only', ifelse(withAvgSex$avgSex == 2, 'Women Only', 'Men and Women'))
-accident <- withAvgSex %>%
-  select(ST_CASE, sexesExplained) %>%
-  inner_join( accident, by='ST_CASE')
+acc_per_6$sexStr <- ifelse(acc_per_6$avgSex == 1, 'Men', ifelse(acc_per_6$avgSex == 2, 'Women', 'Both'))
+accident <- acc_per_6 %>%
+  select(ST_CASE, sexStr) %>%
+  inner_join(acc, by='ST_CASE')
 grouped <- accident %>%
   filter(HOUR <= 24) %>%
   filter(DAY_WEEK != 9) %>%
-  group_by(sexesExplained, HOUR, DAY_WEEK) %>%
+  group_by(sexStr, HOUR, DAY_WEEK) %>%
   summarise(numAccidents = n()) %>%
   arrange(desc(numAccidents))
-head(grouped, 10)
+ggplot(grouped,aes(x=HOUR, y=numAccidents)) + 
+  geom_bar(stat='identity') + 
+  facet_grid(sexStr~DAY_WEEK) + 
+  xlab("Hours per day") + 
+  ylab("Accidents in that day")
 ```
 
 - 7. Now plot a choropleth map of the number of deaths on a county level. Also explain what you find.
