@@ -1,0 +1,120 @@
+---
+title: "Lab5"
+author: "Felix Baez-Santiago"
+date: "4/15/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+- 0. Imports and Dataframe
+```{r}
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(readr)
+library(classdata)
+library(lubridate)
+library(tidyverse)
+library(maps)
+library(ggrepel)
+acc <- read.csv("https://raw.githubusercontent.com/xdaiISU/ds202materials/master/hwlabs/fars2017/accident.csv", stringsAsFactors = FALSE)
+per <- read.csv("https://raw.githubusercontent.com/xdaiISU/ds202materials/master/hwlabs/fars2017/person.csv", stringsAsFactors = FALSE)
+
+makeCode <- read.csv("makeCodes.csv")
+stateCode <- read.csv("stateCodes.csv")
+```
+- 1. Are there some days of the week where more accidents happen than the others (see FARS manual, use variable DAY_WEEK)?
+```{r}
+acc %>%
+  mutate(recode(DAY_WEEK, "1" = "Sunday", "2" = "Monday", "3" = "Tuesday", "4" = "Wednesday", "5" = "Thursday", "6" = "Friday", "7"  = "Saturday")) -> mutAcc
+head(acc)
+accDays <- ggplot(acc, aes(DAY_WEEK)) + geom_bar(width=0.7) + theme_minimal()
+print(accDays + labs(y="Count", x="Days of The Week", title = "Total Number of Accidents on each day of the Week"))
+```
+
+- 2. Create a data frame containing the persons who are fatally hurt in the accidents (look up variable INJ_SEV)
+```{r}
+fatalAccidents <- per %>%
+      filter(INJ_SEV == 4)
+head(fatalAccidents)
+```
+
+```
+
+- 3. Create a data frame containing the most dangerous vehicle make in each state. The number of persons fatally hit in the vehicle make is used to assess the (non-)safety of a make. Make sure to handle the missing values appropriately. (look up variable MAKE)
+```{r}
+makeCode %>%
+  mutate(MAKE = Codes) -> makeCode
+stateCode %>%
+  mutate(STATE = Code) -> stateCode
+per %>%
+  full_join(makeCode) -> per
+per %>%
+  full_join(stateCode) -> per
+fatal <- per %>%
+  filter(INJ_SEV == 2)
+danger <- fatal %>%
+  group_by(State, Make) %>%
+  summarize(n = n()) %>%
+  group_by(State) %>%
+  filter(n == max(n))
+danger
+```
+
+- 4. Create a map, and label each state with the most dangerous vehicle. Discuss the definition of the most dangerous vehicle, and what you find from the map. (Hint: Read the description for the STATE and COUNTY columns in the FARS manual. The state & county codes are Geographic Locator Codes (GLCs) from the General Services Administration’s (GSA) publication. Use readxl::read_xlsx to read in the GLCs.)
+```{r}
+MakeCode <- read.csv('makeCodes.csv')
+StateCode <- read.csv('stateCodes.csv')
+StateCode$State<- tolower(StateCode$State)
+states <- map_data("state")
+labelPosition <- states %>%
+   group_by(region) %>%
+   summarise(long= mean(long, na.rm = TRUE), lat= mean(lat, na.rm = TRUE))
+labelPosition <- left_join(labelPosition, StateCode, by = c("region" = "State"))
+ head(labelPosition, 10)
+```
+- 5. Join the accident and person table (work out which variable(s) to use)
+```{r}
+acc_per <- full_join(acc, per)
+head(acc_per)
+```
+
+- 6. Tally the number of accidents by day of the week (DAY_WEEK), hour of the day (HOUR) and gender (SEX). Visualize the results and explain what you find.
+```{r}
+acc_per_6 <- acc_per %>%
+  filter(SEX == 1 || SEX == 2) %>%
+  group_by(ST_CASE) %>%
+  summarise(avgSex = mean(SEX))
+acc_per_6$sexStr <- ifelse(acc_per_6$avgSex == 1, 'Men', ifelse(acc_per_6$avgSex == 2, 'Women', 'Both'))
+accident <- acc_per_6 %>%
+  select(ST_CASE, sexStr) %>%
+  inner_join(acc, by='ST_CASE')
+grouped <- accident %>%
+  filter(HOUR <= 24) %>%
+  filter(DAY_WEEK != 9) %>%
+  group_by(sexStr, HOUR, DAY_WEEK) %>%
+  summarise(numAccidents = n()) %>%
+  arrange(desc(numAccidents))
+ggplot(grouped,aes(x=HOUR, y=numAccidents)) + 
+  geom_bar(stat='identity') + 
+  facet_grid(sexStr~DAY_WEEK) + 
+  xlab("Hours per day") + 
+  ylab("Accidents in that day")
+
+
+```
+
+- 7. Now plot a choropleth map of the number of deaths on a county level. Also explain what you find.
+```{r}
+
+
+```
+
+- 8. Is summer or winter more dangerous? Does this depend on states? Explore and explain.
+```{r}
+
+
+```
