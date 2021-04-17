@@ -18,20 +18,41 @@ library(classdata)
 library(lubridate)
 library(tidyverse)
 library(maps)
+library(mapproj)
 library(ggrepel)
-acc <- read.csv("https://raw.githubusercontent.com/xdaiISU/ds202materials/master/hwlabs/fars2017/accident.csv", stringsAsFactors = FALSE)
-per <- read.csv("https://raw.githubusercontent.com/xdaiISU/ds202materials/master/hwlabs/fars2017/person.csv", stringsAsFactors = FALSE)
+acc2 <- read.csv("https://raw.githubusercontent.com/xdaiISU/ds202materials/master/hwlabs/fars2017/accident.csv", stringsAsFactors = FALSE)
+per2 <- read.csv("https://raw.githubusercontent.com/xdaiISU/ds202materials/master/hwlabs/fars2017/person.csv", stringsAsFactors = FALSE)
 
 makeCode <- read.csv("makeCodes.csv")
 stateCode <- read.csv("stateCodes.csv")
 ```
-#QUESTION 6
-```{r}
-
-```
-
 #QUESTION 7
 ```{r}
-
+county = map_data('county')
+glc = readxl::read_excel('/Users/ryanherren/Desktop/DS202/ds202_lab5/FRPP_GLC_-_United_StATESaPRIL122021.xlsx')
+glc$'State Code' = as.numeric(glc$'State Code')
+glc$'County Code' = as.numeric(glc$'County Code')
+glc$'County Name' = tolower(glc$'County Name') 
+glc$'State Name' = tolower(glc$'State Name') 
+q7 = acc2 %>% group_by(STATE, COUNTY) %>% summarize(num=n()) %>% select(STATE, COUNTY, num)
+q7p = glc %>% left_join(q7, by=c('State Code' = 'STATE', 'County Code' = 'COUNTY')) %>% right_join(county, by=c('State Name' = 'region', 'County Name' = 'subregion'))
+ggplot(q7p, aes(x=long, y=lat, fill=num)) + geom_polygon(aes(group=group)) + coord_map() + ggtitle('Fatal Accidents by County')
 ```
 
+  I found that there might be a little correlation between being on the coast and higher fatality rates. The southern part of California has high rates, as does a coastal county of southeastern Texas. The places with the least fatalities are the ones with low populations, like Montana and the Dakotas.
+  
+#QUESTION 8
+```{r}
+seasonal_accidents = acc2 %>% 
+  select(STATE, MONTH) %>% 
+  left_join(glc, by=c('STATE' = 'State Code')) %>% 
+  rename('state_name' = 'State Name') %>% 
+  filter(state_name %in% c('montana', 'iowa', 'california', 'new york', 'florida', 'texas')) %>% 
+  group_by(state_name, MONTH) %>% 
+  mutate(num = n()) %>% ungroup()
+seasonal_accidents %>% 
+  group_by(state_name, MONTH) %>% 
+  ggplot(aes(x=MONTH, fill=num)) + geom_bar() + facet_wrap(~state_name) + ylab('Number of fatal accidents') + xlab('Month') + ggtitle('Fatal Accidents')
+```
+
+  It doesn't really seem like much is any correlation between season and the rate of fatal accidents. In some states, the numbers go down in the summer(New York) and in some, they go down in the winters(California). It really just depends on the state for how their trends go. Iowa has the most fatal accidents in September and October, while New York has the most in June and July. I think the summers might slightly have an overall increase in deaths, and that could be attributed to people going out more in the summer because of the nice weather, as opposed to staying in their house for the winters.
