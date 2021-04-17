@@ -1,0 +1,37 @@
+---
+title: "Lab 5"
+author: "Ryan Herren"
+date: "4/16/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(readr)
+library(classdata)
+library(lubridate)
+library(tidyverse)
+library(maps)
+library(ggrepel)
+acc <- read.csv("https://raw.githubusercontent.com/xdaiISU/ds202materials/master/hwlabs/fars2017/accident.csv", stringsAsFactors = FALSE)
+per <- read.csv("https://raw.githubusercontent.com/xdaiISU/ds202materials/master/hwlabs/fars2017/person.csv", stringsAsFactors = FALSE)
+
+makeCode <- read.csv("makeCodes.csv")
+stateCode <- read.csv("stateCodes.csv")
+```
+#QUESTION 6
+```{r}
+
+```
+
+#QUESTION 7
+```{r}
+
+```
+
